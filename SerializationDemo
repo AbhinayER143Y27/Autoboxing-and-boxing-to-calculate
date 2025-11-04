@@ -1,0 +1,87 @@
+import java.io.*;
+
+/**
+ * SerializationDemo demonstrates the saving (serialization) and loading 
+ * (deserialization) of a Student object to and from a file.
+ * The Student class MUST implement the java.io.Serializable interface.
+ */
+public class SerializationDemo {
+
+    // Nested static class for the Student object.
+    // It MUST implement Serializable to participate in Java's serialization framework.
+    static class Student implements Serializable {
+        // Serialization requires a serialVersionUID for version control.
+        private static final long serialVersionUID = 1L;
+
+        private final int id;
+        private final String name;
+        private final String major;
+        
+        // Mark this field as transient to prevent it from being serialized.
+        // This is crucial for sensitive data or data that should be re-calculated.
+        private transient double GPA = 0.0; 
+
+        public Student(int id, String name, String major, double GPA) {
+            this.id = id;
+            this.name = name;
+            this.major = major;
+            this.GPA = GPA;
+        }
+
+        @Override
+        public String toString() {
+            // Note: The GPA will be 0.0 after deserialization because it is 'transient'.
+            return String.format("ID: %d, Name: %s, Major: %s, GPA (Transient): %.2f", 
+                                 id, name, major, GPA);
+        }
+    }
+
+    public static void main(String[] args) {
+        String filename = "student_data.ser";
+        
+        // 1. Serialization (Saving the Object)
+        Student originalStudent = new Student(101, "Alex Johnson", "Computer Science", 3.85);
+        System.out.println("Original Object (Before Save): " + originalStudent);
+        
+        // Note the transient GPA (3.85) will NOT be saved.
+        try (FileOutputStream fileOut = new FileOutputStream(filename);
+             ObjectOutputStream objectOut = new ObjectOutputStream(fileOut)) {
+
+            objectOut.writeObject(originalStudent);
+            System.out.println("\n--- Serialization Success ---");
+            System.out.println("Student object serialized to " + filename);
+            
+        } catch (IOException i) {
+            // A real program would use better logging. This is a basic catch.
+            System.err.println("\nError during Serialization. Clean up your I/O streams.");
+            i.printStackTrace();
+            return;
+        }
+
+        // 2. Deserialization (Loading the Object)
+        Student loadedStudent = null;
+        
+        try (FileInputStream fileIn = new FileInputStream(filename);
+             ObjectInputStream objectIn = new ObjectInputStream(fileIn)) {
+
+            loadedStudent = (Student) objectIn.readObject();
+            System.out.println("\n--- Deserialization Success ---");
+            System.out.println("Student object retrieved from " + filename);
+            
+        } catch (IOException i) {
+            System.err.println("\nError during Deserialization. Check file permissions.");
+            i.printStackTrace();
+            return;
+        } catch (ClassNotFoundException c) {
+            System.err.println("\nClass not found. The stored class definition is likely different from the current one.");
+            c.printStackTrace();
+            return;
+        }
+
+        // 3. Verification
+        System.out.println("\n--- Verification ---");
+        System.out.println("Loaded Object (After Load):  " + loadedStudent);
+        System.out.println("Check: Original Student equals Loaded Student? " + originalStudent.equals(loadedStudent));
+        System.out.println("\n*** NOTICE: The GPA field is 0.0 because it was marked as 'transient' and was NOT serialized. ***");
+    }
+}
